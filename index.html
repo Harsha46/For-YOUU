@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>For You</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; color: #fff; }
+        
+        #text-container {
+            position: absolute; top: 10%; left: 8%; z-index: 20;
+            font-size: 18px; line-height: 1.6; pointer-events: none;
+        }
+
+        /* Simple Photo Styling */
+        #photo-wrapper {
+            position: absolute; bottom: 10%; left: 8%; z-index: 30;
+            opacity: 0; transition: opacity 2s ease-in; display: flex; align-items: center;
+        }
+        #photo-container {
+            position: relative; padding: 10px; border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px; background: rgba(255,255,255,0.05);
+        }
+        #photo-container img {
+            display: block; width: 220px; border-radius: 8px; filter: grayscale(20%);
+        }
+
+        /* Handwritten-style hearts */
+        .hand-heart {
+            font-size: 30px; color: #ff4d6d; position: absolute; opacity: 0.8;
+            font-family: cursive; filter: blur(0.5px);
+        }
+        .heart-left { left: -40px; top: 20%; transform: rotate(-15deg); }
+        .heart-right { right: -40px; bottom: 20%; transform: rotate(15deg); }
+
+        canvas { position: absolute; top: 0; left: 0; }
+        #bgCanvas { z-index: 1; opacity: 0.15; } 
+        #treeCanvas { z-index: 5; }
+        
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: flex; justify-content: center;
+            align-items: center; z-index: 100;
+        }
+        
+        .heart-btn {
+            position: relative; width: 80px; height: 70px; cursor: pointer;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .heart-btn:before, .heart-btn:after {
+            position: absolute; content: ""; left: 40px; top: 0;
+            width: 40px; height: 65px; background: #ff4d6d;
+            border-radius: 40px 40px 0 0; transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+        .heart-btn:after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+        .shrink { transform: scale(0); opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" src="music.mp3" loop></audio>
+    <div id="overlay">
+        <div class="heart-btn" onclick="triggerAnimation(this)"></div>
+            <div class="btn-text">Click Me</div>
+    </div>
+
+    <div id="text-container"></div>
+
+    <div id="photo-wrapper">
+        <span class="hand-heart heart-left">♡</span>
+        <div id="photo-container">
+            <img src="photo.jpg" alt="Birthday Queen">
+        </div>
+        <span class="hand-heart heart-right">♡</span>
+    </div>
+
+    <canvas id="bgCanvas"></canvas>
+    <canvas id="treeCanvas"></canvas>
+
+    <script>
+        const treeCanvas = document.getElementById('treeCanvas');
+        const treeCtx = treeCanvas.getContext('2d');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const textContainer = document.getElementById('text-container');
+
+        function resize() {
+            treeCanvas.width = bgCanvas.width = window.innerWidth;
+            treeCanvas.height = bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function triggerAnimation(btn) {
+            document.getElementById('bgMusic').play().catch(e => console.log("Audio play failed:", e));
+            btn.classList.add('shrink');
+            const seed = document.createElement('div');
+            seed.style.cssText = `position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; background: #ffb7c5; border-radius: 50%; z-index: 101; transition: all 1.2s ease-in-out; transform: translate(-50%, -50%);`;
+            document.body.appendChild(seed);
+
+            setTimeout(() => {
+                seed.style.left = (window.innerWidth * 0.68) + 'px';
+                seed.style.top = (window.innerHeight - 10) + 'px';
+            }, 100);
+
+            setTimeout(() => {
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').remove(), 600);
+                seed.style.opacity = '0';
+                startSurprise();
+            }, 1300);
+        }
+
+        const message = "Hey you💕, Yes YOUU, neeene macchaa, neeenee!!\nI know you are single as FUCK!!!\n(also i know by choice, hodibeda amele)\nBuuut, you dont have to miss out anything this daridra day!!!\n\nSending all these hearts and HUGGSS🫂🫂🫂❤️\nFOR THE BEAUTIFUL LADY!!!❤️\n\AND FOR BEING THE BESSTTESTTT!!!❤️\n\nYOU out of no where,\nare now the most imp peoples now!!!❤️\nAnd again YOU the BESTTEST, PRETTIESTT!!!\n       ❤️ ";
+
+        function typeWriter() {
+            let i = 0;
+            function type() {
+                if (i < message.length) {
+                    textContainer.innerHTML += message.charAt(i) === "\n" ? "<br>" : message.charAt(i);
+                    i++;
+                    setTimeout(type, 50);
+                }
+            }
+            type();
+        }
+
+        const bgHearts = [];
+        function createBgHearts() {
+            for (let i = 0; i < 30; i++) {
+                bgHearts.push({ x: Math.random() * bgCanvas.width, y: Math.random() * bgCanvas.height, size: Math.random() * 2 + 1, speed: Math.random() * 0.2 + 0.1, opacity: Math.random() * 0.3 });
+            }
+        }
+
+        function animateBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgHearts.forEach(h => {
+                h.y -= h.speed; if (h.y < -20) h.y = bgCanvas.height + 20;
+                drawHeart(bgCtx, h.x, h.y, h.size, `rgba(255, 180, 200, ${h.opacity})`);
+            });
+            requestAnimationFrame(animateBackground);
+        }
+
+        const branchList = [];
+        const leafList = [];
+        const leafColors = ["#ff0a54", "#ff477e", "#ff7096", "#ff85a1", "#fbb1bd", "#ff99ac", "#ffea00", "#ff9100"];
+
+        function createTreeData(x1, y1, angle, depth, len, width) {
+            if (depth === 0) return;
+            const x2 = x1 + Math.sin(angle * Math.PI / 180) * len;
+            const y2 = y1 - Math.cos(angle * Math.PI / 180) * len;
+            branchList.push({ x1, y1, x2, y2, width });
+
+            if (depth < 8) {
+                for(let i=0; i < 6; i++) {
+                    leafList.push({ x: x2 + (Math.random() - 0.5) * 80, y: y2 + (Math.random() - 0.5) * 80, size: Math.random() * 5 + 7, color: leafColors[Math.floor(Math.random() * leafColors.length)] });
+                }
+            }
+            createTreeData(x2, y2, angle - 22 - Math.random() * 12, depth - 1, len * 0.8, width * 0.7);
+            createTreeData(x2, y2, angle + 22 + Math.random() * 12, depth - 1, len * 0.8, width * 0.7);
+        }
+
+        function drawHeart(ctx, x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.moveTo(x, y);
+            ctx.bezierCurveTo(x - size, y - size, x - size * 2, y + size, x, y + size * 2);
+            ctx.bezierCurveTo(x + size * 2, y + size, x + size, y - size, x, y);
+            ctx.fill();
+        }
+
+        let bIdx = 0;
+        function animateTree() {
+            let batch = 5;
+            for (let i = 0; i < batch; i++) {
+                if (bIdx < branchList.length) {
+                    const b = branchList[bIdx];
+                    treeCtx.strokeStyle = "#ffb7c5"; treeCtx.lineWidth = b.width; treeCtx.lineCap = "round";
+                    treeCtx.beginPath(); treeCtx.moveTo(b.x1, b.y1); treeCtx.lineTo(b.x2, b.y2); treeCtx.stroke();
+                    bIdx++;
+                }
+            }
+            if (bIdx < branchList.length) requestAnimationFrame(animateTree);
+            else bloomLeaves();
+        }
+
+        function bloomLeaves() {
+            let lIdx = 0;
+            function bloom() {
+                let batch = 35;
+                for (let i = 0; i < batch; i++) {
+                    if (lIdx < leafList.length) {
+                        const l = leafList[lIdx];
+                        drawHeart(treeCtx, l.x, l.y, l.size, l.color);
+                        lIdx++;
+                    }
+                }
+                if (lIdx < leafList.length) requestAnimationFrame(bloom);
+                else {
+                    // Show photo after bloom is complete
+                    document.getElementById('photo-wrapper').style.opacity = '1';
+                }
+            }
+            bloom();
+        }
+
+        function startSurprise() {
+            typeWriter();
+            createBgHearts();
+            animateBackground();
+            createTreeData(treeCanvas.width * 0.68, treeCanvas.height, 0, 10, treeCanvas.height / 5.5, 13);
+            animateTree();
+        }
+
+        function fadeInMusic() {
+            const audio = document.getElementById('bgMusic');
+            audio.volume = 0;
+            audio.play();
+            let vol = 0;
+            const interval = setInterval(() => {
+                if (vol < 1) {
+                    vol += 0.05;
+                    audio.volume = vol.toFixed(2);
+                } else {
+            clearInterval(interval);
+        }
+    }, 200);
+}
+    </script>
+</body>
+</html>
